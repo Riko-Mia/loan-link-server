@@ -1,4 +1,5 @@
 node_modules
 .env
 loan-link-rk-firebase-adminsdk-key.json
-
+loan-link-rk-firebase-adminsdk-key.json
+.vercel

@@ -3,13 +3,18 @@ const cors = require('cors')
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 3000;
 
 const admin = require("firebase-admin");
 
-// const serviceAccount = require("path/to/serviceAccountKey.json");
-// const serviceAccount = require("/loan-link-rk-firebase-adminsdk-key.json");
 const serviceAccount = require("./loan-link-rk-firebase-adminsdk-key.json");
+
+// const serviceAccount = require("./firebase-admin-key.json");
+
+
+
+// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+// const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -26,6 +31,7 @@ app.use(express.json())
 
 // const uri = "mongodb+srv://rikomia722_db_user:92LZPanIs2ZBZf7p@loan-link.fuipv60.mongodb.net/?appName=loan-link";
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@loan-link.fuipv60.mongodb.net/?appName=loan-link`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@loan-link.fuipv60.mongodb.net/?appName=loan-link-A11`;
 
 
 
@@ -147,7 +153,8 @@ const verifyManager = async (req, res, next) =>{
 
 
     app.get("/max-loans-six", async (req, res) =>{
-      const cursor = addLoansCollection.find().sort({createdAt: -1}).limit(6)
+
+      const cursor = addLoansCollection.find({showOnHome: true}).sort({createdAt: -1}).limit(6)
       // const cursor = addLoansCollection.find().limit(6)
       const result = await cursor.toArray()
       res.send(result)
@@ -155,7 +162,7 @@ const verifyManager = async (req, res, next) =>{
 
 
     app.get("/all-loans", async (req, res) =>{
-      const cursor = addLoansCollection.find().sort({createdAt: -1})
+      const cursor = addLoansCollection.find({showOnHome: true}).sort({createdAt: -1})
       const result = await cursor.toArray()
       res.send(result)
     })
@@ -189,6 +196,40 @@ const verifyManager = async (req, res, next) =>{
           const result = await cursor.toArray()
           res.send(result)
         })
+
+
+        // Control Show on home Toggle Event 
+            app.patch('/toggle-home/:id', async (req, res) => {
+              const id = req.params.id;
+              
+              const updateShowOnHome= req.body;
+              const query = {_id: new ObjectId(id)}
+              const update = {
+                $set:{
+                  showOnHome : updateShowOnHome.showOnHome
+                }
+              }
+              const result = await addLoansCollection.updateOne(query, update)
+              // console.log(result)
+                res.send(result)
+            });
+
+
+ // Control Reject Event 
+            app.patch('/loan-reject/:id', async (req, res) => {
+              const id = req.params.id;
+              
+              const updateStatus= req.body;
+              const query = {_id: new ObjectId(id)}
+              const update = {
+                $set:{
+                  status : updateStatus.status
+                }
+              }
+              const result = await loanCollection.updateOne(query, update)
+              console.log(result)
+                res.send(result)
+            });
 
 // Admin all loans application Api
     app.get("/all-loans-application-admin",  async (req, res) =>{
@@ -256,8 +297,8 @@ const verifyManager = async (req, res, next) =>{
     // Send a ping to confirm a successful connection
 
 
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
   } finally {
