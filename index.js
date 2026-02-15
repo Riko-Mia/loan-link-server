@@ -7,14 +7,14 @@ const port = process.env.PORT || 3000;
 
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./loan-link-rk-firebase-adminsdk-key.json");
+// const serviceAccount = require("./loan-link-rk-firebase-adminsdk-key.json");
 
-// const serviceAccount = require("./firebase-admin-key.json");
+// const serviceAccount = require("./firebase-admin-key.json"); //don't be open
 
 
 
-// const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
-// const serviceAccount = JSON.parse(decoded);
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString('utf8')
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -58,7 +58,7 @@ const verifyFireBaseToken= async(req, res, next) =>{
   //  verify token
   try{
     const decoded = await admin.auth().verifyIdToken(token)
-    console.log('after decode token ', decoded)
+    // console.log('after decode token ', decoded)
     req.token_email = decoded.email;
     next()
   }
@@ -129,7 +129,7 @@ const verifyManager = async (req, res, next) =>{
           res.send('User already exits. do not need to add again.')
         } else{
           const result = await usersCollection.insertOne(newUser)
-          console.log(result)
+          // console.log(result)
           res.send(result)
         }
     })
@@ -223,11 +223,12 @@ const verifyManager = async (req, res, next) =>{
               const query = {_id: new ObjectId(id)}
               const update = {
                 $set:{
-                  status : updateStatus.status
+                  status : updateStatus.status,
+                  rejectAt: new Date()
                 }
               }
               const result = await loanCollection.updateOne(query, update)
-              console.log(result)
+              // console.log(result)
                 res.send(result)
             });
 
@@ -264,6 +265,23 @@ const verifyManager = async (req, res, next) =>{
       res.send(result)
     })
 
+    // Control Approved in manager all-loan-application Event 
+            app.patch('/loan-update/:id', async (req, res) => {
+              const id = req.params.id;
+              
+              const updateStatus= req.body;
+              const query = {_id: new ObjectId(id)}
+              const update = {
+                $set:{
+                  status : updateStatus.status,
+                  approvedAt: new Date()
+                }
+              }
+              const result = await loanCollection.updateOne(query, update)
+              // console.log(result)
+                res.send(result)
+            });
+
     // Find all Approved application 
     app.get("/approved-loans", async (req, res) =>{
       const cursor = loanCollection.find({status: "Approved"})
@@ -278,6 +296,19 @@ const verifyManager = async (req, res, next) =>{
           const query = {email:email}
           const cursor = loanCollection.find(query).sort({createdAt: -1})
           const result = await cursor.toArray()
+          res.send(result)
+    })
+
+
+    //Finding user role
+        app.get("/my-role/:email", async (req, res) =>{
+          const email = req.params.email;
+          const query = {email}
+          // const cursor = loanCollection.find(query).sort({createdAt: -1})
+          // const result = await cursor.toArray()
+
+
+          const result = await usersCollection.findOne(query)
           res.send(result)
     })
 
@@ -297,8 +328,8 @@ const verifyManager = async (req, res, next) =>{
     // Send a ping to confirm a successful connection
 
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
 
   } finally {
@@ -314,5 +345,5 @@ run().catch(console.dir);
 
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  // console.log(`Example app listening on port ${port}`)
 })
